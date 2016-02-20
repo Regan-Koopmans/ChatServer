@@ -45,6 +45,8 @@ void broadcast(char[256],char[256],ChatServer*);
 
 
 int main(int argc, char* argv[]) {
+	cout << "\e[0m" << endl;
+	cout << "\e[97m" << endl;	
     unsigned short serverPort = 9200;
     int serverSocket;
     struct sockaddr_in serverAddress;
@@ -136,7 +138,7 @@ void chatFunction(int socket, ChatServer* cs) {
     char buffer[256];
     
     bzero(message,256);
-    strcpy(message,"Welcome to the chat room. \n Type QUIT to leave.\n What is your name? ");
+    strcpy(message,"\e[107m \e[31mWelcome to the chat room.\e[0m \n \e[44mType \e[1mQUIT to leave.\e[0m \n What is your name? ");
     n = write(socket,message,strlen(message));
     if (n < 0) cout << "ERROR writing to socket" << endl;
     n = read(socket,name,255);
@@ -149,7 +151,7 @@ void chatFunction(int socket, ChatServer* cs) {
     strcat(message,"has joined the chat");
     broadcast(message,name, cs);  
     bzero(message,256);
-    strcat(message,"\n>> ");
+    strcat(message,"\n\e[5m\e[41m\e[97m>>\e[0m");
     n = write(socket,message,strlen(message));
     if (n < 0) cout << "ERROR writing to socket" << endl;
     bzero(buffer,256);
@@ -161,14 +163,17 @@ void chatFunction(int socket, ChatServer* cs) {
 		if (strstr(buffer,"--help"))
 		{
 			write(socket,"\n\t Chat Server Commands",23);
-			write(socket,"\nBROADCAST <message> \t Sends a message to all other users.",58);
-			write(socket,"\nSEND <user> <message> \t Sends a message to a specific online user.",68);
-			write(socket,"\nDISPLAY <message> \t Send a message to the server.\n\n",52);
+			write(socket,"\n \e[97m BROADCAST <message>\e[0m \t Sends a message to all other users.",70);
+			write(socket,"\n \e[97m SEND <user> <message>\e[0m  \t Sends a message to a specific online user.",80);
+			write(socket,"\n \e[97m DISPLAY <message>\e[0m  \t Send a message to the server.\n\n",65);
+			write(socket,"\n \e[97m QUIT\e[0m  \t Terminates the chat session.\n\n",51);
+
 		}	
 		else if (strstr(buffer,"BROADCAST"))
 		{
 			string message = buffer;
 			message = message.replace(0,9,"");
+			message = "\e[30m\e[47m" + message + "\e[0m\n";
         	broadcast(const_cast<char*>(message.c_str()),name,cs);
  		}
 		else if (strstr(buffer, "DISPLAY"))
@@ -184,8 +189,11 @@ void chatFunction(int socket, ChatServer* cs) {
 			message = message.replace(0,5,"");
 			string saveName(message.c_str() + 0, message.find(" "));
 			
-			cout << saveName << endl;
-			
+			message.erase(0,saveName.length());
+			string temp = message;
+			message = "\n\e[30m\e[47m";
+			message += name;
+			message += "\e[1m Personal Message \e[21m:" + temp + "\e[0m \e[0m \n";			
 			n = write(cs->userList[saveName],message.c_str(),strlen(message.c_str()));
 			//n = write(cs->userList[saveNameAlt],message.c_str(),strlen(message.c_str()));
 			if (n < 0) cout << "FAILED" << endl;
@@ -196,12 +204,12 @@ void chatFunction(int socket, ChatServer* cs) {
 				
 				cout << "----------" << endl;
 				for(auto it = cs->userList.begin(); it != cs->userList.end(); ++it)
-				cout << "| " <<  it->first << "\t |" << endl;
+				cout << "| \e[44m" <<  it->first << "\e[0m \t |" << endl;
 				cout << "----------" << endl;
 		}       
        	 
 			bzero(message,256);
-        	strcat(message,">> ");
+        	strcat(message,"\e[5m\e[41m\e[97m>>\e[0m");
         	n = write(socket,message,strlen(message));
         	if (n < 0) cout << "ERROR writing to socket" << endl;
         	bzero(buffer,256);
