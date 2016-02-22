@@ -123,7 +123,10 @@ vector<int> ChatServer::getList() {
 
 void ChatServer::removeSocket(int socket) {
     vector<int>::iterator it;
-    
+
+	if (clientList.size() == 0)
+		exit(0);    
+
     it = find (clientList.begin(), clientList.end(), socket);
     if (it != clientList.end()) {
         clientList.erase(it);
@@ -143,7 +146,7 @@ void chatFunction(int socket, ChatServer* cs) {
     if (n < 0) cout << "ERROR writing to socket" << endl;
     n = read(socket,name,255);
 	string saveName = name;
-	saveName = saveName.substr(0,saveName.length()-2);
+	saveName = saveName.substr(0,saveName.length());
 	cs->userList[saveName] = socket;
 	cout << "Saved socket is " << cs->userList[saveName] << endl;
     if (n < 0) cout << "ERROR reading from socket" << endl;
@@ -158,16 +161,17 @@ void chatFunction(int socket, ChatServer* cs) {
     n = read(socket,buffer,255);
     if (n < 0) cout << "ERROR reading from socket" << endl;
     
-    while (!((strcmp(buffer,"QUIT\r\n") == 0) || (strcmp(buffer,"QUIT") == 0)))
+    while (!((strcmp(buffer,"ZZZ\r\n") == 0) || (strcmp(buffer,"ZZZ") == 0)))
 	{
 		if (strstr(buffer,"--help"))
 		{
-			write(socket,"\n\t Chat Server Commands",23);
-			write(socket,"\n \e[97m BROADCAST <message>\e[0m \t Sends a message to all other users.",70);
-			write(socket,"\n \e[97m SEND <user> <message>\e[0m  \t Sends a message to a specific online user.",80);
-			write(socket,"\n \e[97m DISPLAY <message>\e[0m  \t Send a message to the server.\n\n",65);
-			write(socket,"\n \e[97m QUIT\e[0m  \t Terminates the chat session.\n\n",51);
-
+			string output = "";
+			output += "\n\t Chat Server Commands";
+			output += "\n\e[97m BROADCAST <message>\e[0m    Sends a message to all other users.";
+			output += "\n\e[97m SEND <user> <message>\e[0m   Sends a message to a specific online user.";		
+			output += "\n\e[97m DISPLAY\e[0m   Displays all online users.";
+			output += "\n\e[97m QUIT\e[0m   Ends the chat session.";
+			write(socket,output.c_str(),strlen(output.c_str()));
 		}	
 		else if (strstr(buffer,"BROADCAST"))
 		{
@@ -176,11 +180,9 @@ void chatFunction(int socket, ChatServer* cs) {
 			message = "\e[30m\e[47m" + message + "\e[0m\n";
         	broadcast(const_cast<char*>(message.c_str()),name,cs);
  		}
-		else if (strstr(buffer, "DISPLAY"))
+		else if (strstr(buffer, "QUIT"))
 		{
-			string message = buffer;
-			message = message.replace(0,7,"");
-        	cout << name << " - " << message << endl;
+			exit(0);			//threads	
 		}
 		else if (strstr(buffer,"SEND"))
 		{
@@ -199,18 +201,26 @@ void chatFunction(int socket, ChatServer* cs) {
 			if (n < 0) cout << "FAILED" << endl;
 			else cout << name << " successfully sent " << saveName << " a message." << endl;
 		}
-		else if (strstr(buffer,"USERLIST"))
+		else if (strstr(buffer,"DISPLAY"))
 		{
 				
 				cout << "----------" << endl;
 				for(auto it = cs->userList.begin(); it != cs->userList.end(); ++it)
-				cout << "| \e[44m" <<  it->first << "\e[0m \t |" << endl;
+					cout << "| \e[44m" <<  it->first << "\e[0m \t |" << endl;
 				cout << "----------" << endl;
+
+				string output = "";
+
+				output += "--------\n";
+				for (auto it = cs->userList.begin(); it != cs->userList.end(); ++it)
+					output += "|" + it->first + "|\n";
+				output += "--------\n";
+				write(socket,output.c_str(),strlen(output.c_str()));
 		}       
        	 
 			bzero(message,256);
         	strcat(message,"\e[5m\e[41m\e[97m>>\e[0m");
-        	n = write(socket,message,strlen(message));
+        	n = write(socket,message,strlen(message)+4);
         	if (n < 0) cout << "ERROR writing to socket" << endl;
         	bzero(buffer,256);
         	n = read(socket,buffer,255);
@@ -221,9 +231,10 @@ void chatFunction(int socket, ChatServer* cs) {
     bzero(message,256);
     strcat(message,"has left the chat...");
     broadcast(message,name, cs);
+	cs->userList.erase(saveName);
     cs->removeSocket(socket);
     close(socket);
-	exit(0);
+	return;
 }
 
 void broadcast(char msg[256], char name[256], ChatServer* cs, int clientSocket)
