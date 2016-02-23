@@ -97,6 +97,12 @@ ChatServer::ChatServer(unsigned short port, int socket) {
     serverSocket = socket;
 }
 
+void readOnce()
+{
+	string input;
+	if (input =="QUIT" || input == "QUIT\r\n")
+		exit(0);
+}
 
 void ChatServer::serverRun() {
     unsigned int clientLength;
@@ -132,7 +138,6 @@ void ChatServer::removeSocket(int socket) {
         clientList.erase(it);
     }
 }
-
 
 void chatFunction(int socket, ChatServer* cs) {
     char message[256];
